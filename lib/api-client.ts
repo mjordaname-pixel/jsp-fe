@@ -1,4 +1,4 @@
-import type { AuthResponse } from "@/lib/types";
+import type { AuthResponse, SignupResponse } from "@/lib/types";
 
 
 const API_BASE_URL =
@@ -91,7 +91,7 @@ export async function apiRequest<T>(
 }
 
 export async function createSession(
-  endpoint: "login" | "signup",
+  endpoint: "login",
   payload: unknown,
 ): Promise<AuthResponse> {
   const session = await apiRequest<AuthResponse>(
@@ -101,6 +101,16 @@ export async function createSession(
   );
   setAccessToken(session.access_token);
   return session;
+}
+
+export async function createAccount(payload: unknown): Promise<SignupResponse> {
+  const result = await apiRequest<SignupResponse>(
+    "/auth/signup",
+    { method: "POST", body: JSON.stringify(payload) },
+    false,
+  );
+  if ("access_token" in result) setAccessToken(result.access_token);
+  return result;
 }
 
 export async function restoreSession(): Promise<AuthResponse | null> {

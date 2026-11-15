@@ -37,7 +37,7 @@ export function LoginForm({ redirectTo = "/jobs" }: { redirectTo?: string }) {
       if (error instanceof ApiError && error.status === 401) {
         setSubmitError("Incorrect email or password.");
       } else if (error instanceof ApiError && error.status === 403) {
-        setSubmitError("Your account is currently unavailable.");
+        setSubmitError(error.message);
       } else {
         setSubmitError("We couldn't sign you in. Please try again.");
       }
@@ -68,6 +68,11 @@ export function LoginForm({ redirectTo = "/jobs" }: { redirectTo?: string }) {
       <Button type="submit" disabled={isSubmitting} className="h-11 w-full rounded-xl">
         {isSubmitting ? "Signing in..." : "Sign in"}
       </Button>
+      <p className="text-center text-sm">
+        <Link href="/auth/forgot-password" className="font-semibold text-blue-700 hover:underline">
+          Forgot your password?
+        </Link>
+      </p>
       <p className="text-center text-sm text-slate-500">
         New to CirWork?{" "}
         <Link href="/auth/signup" className="font-semibold text-blue-700 hover:underline">
@@ -101,7 +106,7 @@ export function SignupForm({
   const onSubmit = handleSubmit(async (values) => {
     setSubmitError(null);
     try {
-      await signup({
+      const result = await signup({
         email: values.email,
         password: values.password,
         full_name: values.full_name,
@@ -122,6 +127,10 @@ export function SignupForm({
               }
             : undefined,
       });
+      if (result.verificationEmail) {
+        router.replace("/auth/check-email");
+        return;
+      }
       router.replace(values.role === "recruiter" ? "/jobs" : "/profile");
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {

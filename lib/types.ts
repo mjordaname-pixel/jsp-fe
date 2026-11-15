@@ -4,6 +4,7 @@ export type ExperienceLevel = "entry" | "mid" | "senior" | "lead" | "executive";
 export type User = {
   id: string;
   is_active: boolean;
+  email_verified_at: string | null;
   email: string;
   role: UserRole;
   full_name: string;
@@ -22,6 +23,13 @@ export type AuthResponse = {
   token_type: "bearer";
   user: User;
 };
+
+export type SignupVerificationResponse = {
+  requires_email_verification: true;
+  email: string;
+};
+
+export type SignupResponse = AuthResponse | SignupVerificationResponse;
 
 export type JobType =
   | "full-time"

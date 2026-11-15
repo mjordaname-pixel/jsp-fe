@@ -3,6 +3,7 @@
 import { create } from "zustand";
 
 import {
+  createAccount,
   createSession,
   destroySession,
   restoreSession,
@@ -27,7 +28,7 @@ type AuthState = {
   initializing: boolean;
   bootstrap: () => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
-  signup: (payload: SignupPayload) => Promise<void>;
+  signup: (payload: SignupPayload) => Promise<{ verificationEmail: string | null }>;
   logout: () => Promise<void>;
 };
 
@@ -48,8 +49,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ user: session.user, initializing: false });
   },
   signup: async (payload) => {
-    const session = await createSession("signup", payload);
-    set({ user: session.user, initializing: false });
+    const result = await createAccount(payload);
+    if ("requires_email_verification" in result) {
+      set({ user: null, initializing: false });
+      return { verificationEmail: result.email };
+    }
+    set({ user: result.user, initializing: false });
+    return { verificationEmail: null };
   },
   logout: async () => {
     await destroySession();
