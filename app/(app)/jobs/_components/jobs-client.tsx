@@ -70,27 +70,21 @@ export function JobsClient({ initialFilters }: { initialFilters: JobFilters }) {
   const [editingJob, setEditingJob] = useState<Job | null>(null);
   const queryClient = useQueryClient();
   const regionOptions = regionOptionsForCountry(filters.country);
-  const targetRoles = Array.isArray(user?.preferences.target_roles)
-    ? user.preferences.target_roles.filter(
-        (value): value is string => typeof value === "string" && Boolean(value.trim()),
-      )
-    : [];
-  const workplacePreferences = Array.isArray(user?.preferences.workplace_types)
-    ? user.preferences.workplace_types.filter(
-        (value): value is string => typeof value === "string",
-      )
-    : [];
-  const useProfileDefaults = user?.role === "job_seeker" && !initialFilters.q;
-  const effectiveQuery = initialFilters.q || (useProfileDefaults ? targetRoles[0] ?? "" : "");
-  const effectiveWorkplace =
-    initialFilters.workplaceType ||
-    (useProfileDefaults && workplacePreferences.includes("remote") ? "remote" : "");
-  const effectiveLocation =
-    initialFilters.location ||
-    (useProfileDefaults && effectiveWorkplace !== "remote" ? user?.location ?? "" : "");
-  const effectiveExperience =
-    initialFilters.experienceLevel ||
-    (useProfileDefaults ? user?.experience_level ?? "" : "");
+  // Profile preferences belong in recommendation ranking. Applying all of them
+  // as invisible hard filters makes the default feed empty as profiles become
+  // more complete. Only filters the user explicitly submits constrain search.
+  const effectiveQuery = initialFilters.q;
+  const effectiveWorkplace = initialFilters.workplaceType;
+  const effectiveLocation = initialFilters.location;
+  const effectiveExperience = initialFilters.experienceLevel;
+  const isDefaultJobSeekerFeed =
+    user?.role === "job_seeker" &&
+    initialFilters.page === 1 &&
+    !initialFilters.q &&
+    !initialFilters.location &&
+    !initialFilters.jobType &&
+    !initialFilters.workplaceType &&
+    !initialFilters.experienceLevel;
 
   const queryString = new URLSearchParams();
   if (effectiveQuery) queryString.set("q", effectiveQuery);
@@ -99,7 +93,7 @@ export function JobsClient({ initialFilters }: { initialFilters: JobFilters }) {
   if (initialFilters.jobType) queryString.set("job_type", initialFilters.jobType);
   if (effectiveWorkplace) queryString.set("workplace_type", effectiveWorkplace);
   if (effectiveExperience) queryString.set("experience_level", effectiveExperience);
-  if (initialFilters.searchMode === "hybrid" || useProfileDefaults) queryString.set("mode", "hybrid");
+  if (initialFilters.searchMode === "hybrid") queryString.set("mode", "hybrid");
   if (initialFilters.searchMode === "hybrid" && initialFilters.timeline) {
     queryString.set("timeline", initialFilters.timeline);
   }
@@ -113,10 +107,7 @@ export function JobsClient({ initialFilters }: { initialFilters: JobFilters }) {
   const recommendationsQuery = useQuery({
     queryKey: ["job-recommendations", user?.id],
     queryFn: () => apiRequest<JobRecommendations>("/recommendations/jobs?limit=6"),
-    enabled:
-      user?.role === "job_seeker" &&
-      !initialFilters.q &&
-      initialFilters.page === 1,
+    enabled: isDefaultJobSeekerFeed,
     staleTime: 5 * 60 * 1000,
   });
   const externalQueryString = new URLSearchParams();
@@ -311,7 +302,7 @@ export function JobsClient({ initialFilters }: { initialFilters: JobFilters }) {
         </Button>
       </form>
 
-      {user?.role === "job_seeker" && !initialFilters.q && initialFilters.page === 1 && (
+      {isDefaultJobSeekerFeed && (
         <section className="rounded-2xl bg-gradient-to-br from-blue-950 to-blue-800 p-5 text-white sm:p-6">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
@@ -375,10 +366,21 @@ export function JobsClient({ initialFilters }: { initialFilters: JobFilters }) {
           Finding more opportunities that match your search...
         </div>
       )}
-      {jobsQuery.data?.items.length === 0 && !externalJobsQuery.isFetching && displayedJobs.length === 0 && (
+      {jobsQuery.data?.items.length === 0 &&
+        !externalJobsQuery.isFetching &&
+        displayedJobs.length === 0 &&
+        !(isDefaultJobSeekerFeed && recommendationsQuery.isLoading) &&
+        !(
+          isDefaultJobSeekerFeed &&
+          (recommendationsQuery.data?.items.length ?? 0) > 0
+        ) && (
         <StatePanel
-          title="No roles matched this search"
-          description="Try a broader title, remove a filter, or ask CirWork to suggest another direction."
+          title={isDefaultJobSeekerFeed ? "New roles are on the way" : "No roles matched this search"}
+          description={
+            isDefaultJobSeekerFeed
+              ? "We are refreshing opportunities for your profile. Check back shortly or search for a specific role."
+              : "Try a broader title, remove a filter, or ask CirWork to suggest another direction."
+          }
         />
       )}
       {jobsQuery.data && displayedJobs.length > 0 && (
