@@ -7,6 +7,7 @@ import { ArrowRight, Bot, Clock3, Loader2, Plus, RotateCcw, Send, Sparkles, User
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { useAssistantChat } from "@/hooks/use-assistant-chat";
+import { AssistantMarkdown } from "./assistant-markdown";
 
 export function AssistantChat({
   name,
@@ -122,7 +123,11 @@ export function AssistantChat({
                           : "bg-slate-900 text-white rounded-tr-sm"
                       }`}
                     >
-                      <div className="whitespace-pre-wrap">{message.content}</div>
+                      {message.role === "assistant" ? (
+                        <AssistantMarkdown content={message.content} />
+                      ) : (
+                        <div className="whitespace-pre-wrap">{message.content}</div>
+                      )}
 
                       {message.retrieved_context?.web_sources && message.retrieved_context.web_sources.length > 0 && (
                         <div className="mt-3 space-y-2 border-t border-blue-200 pt-3">
