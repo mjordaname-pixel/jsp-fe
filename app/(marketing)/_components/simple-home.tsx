@@ -134,7 +134,7 @@ export function SimpleRecruiterSection() {
             Build a talent strategy that moves the business forward.
           </h2>
           <p className="mt-4 max-w-xl text-base leading-7 text-slate-300">
-            CirWork brings the essential parts of finding, supporting, and retaining people into one focused workspace.
+            CirWork brings the essential parts of finding, supporting, and retaining talent into one focused workspace.
           </p>
           <Button asChild className="mt-7 h-11 rounded-xl bg-white px-5 text-slate-950 hover:bg-blue-50">
             <Link href="/auth/signup?role=recruiter">
